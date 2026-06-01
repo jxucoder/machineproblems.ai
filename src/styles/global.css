@@ -1,0 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-bg: 255 255 255;
+  --color-bg-secondary: 250 250 250;
+  --color-text: 10 10 10;
+  --color-text-secondary: 115 115 115;
+  --color-border: 232 232 232;
+  --color-accent: 10 10 10;
+
+  /* Semantic actor colors for sequence diagrams */
+  --color-actor-user: 59 130 246;
+  --color-actor-client: 34 197 94;
+  --color-actor-auth: 239 68 68;
+  --color-actor-resource: 168 85 247;
+}
+
+.dark {
+  --color-bg: 10 10 10;
+  --color-bg-secondary: 18 18 18;
+  --color-text: 237 237 237;
+  --color-text-secondary: 160 160 160;
+  --color-border: 38 38 38;
+  --color-accent: 237 237 237;
+
+  --color-actor-user: 96 165 250;
+  --color-actor-client: 74 222 128;
+  --color-actor-auth: 248 113 113;
+  --color-actor-resource: 192 132 252;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background-color: rgb(var(--color-bg));
+  color: rgb(var(--color-text));
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: rgb(var(--color-text) / 0.12);
+}
+
+:focus-visible {
+  outline: 1.5px solid rgb(var(--color-text));
+  outline-offset: 2px;
+}
+
+pre {
+  background-color: rgb(var(--color-bg-secondary)) !important;
+  border: 1px solid rgb(var(--color-border));
+  border-radius: 8px;
+  padding: 1.25rem;
+  overflow-x: auto;
+  font-size: 0.8125rem;
+  line-height: 1.7;
+}
+
+code {
+  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  font-size: 0.85em;
+}
+
+.katex-display {
+  margin: 1.5em 0 !important;
+  overflow-x: auto;
+}

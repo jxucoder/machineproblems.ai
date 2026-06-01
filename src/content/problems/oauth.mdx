@@ -1,0 +1,82 @@
+---
+title: OAuth From Zero
+description: What happens when you click "Sign in with Google" or "Connect GitHub", explained without assuming protocol knowledge.
+category: security
+difficulty: intro
+tags: [oauth, authentication, pkce, web-security]
+actors: [User, Client, Auth Server, Resource Server]
+date: 2026-05-31
+---
+
+import { OAuthFlowViz } from '../../components/viz/OAuthFlowViz';
+
+<OAuthFlowViz client:load />
+
+## Concrete story first
+
+Imagine JayP wants to print photos stored in Google Drive. The printing service, Print Express, needs to read JayP's Drive files. JayP should not give Print Express his Google password.
+
+OAuth solves that by making Print Express ask Google for delegated access. Google authenticates JayP, asks JayP for consent, sends Print Express an **authorization code**, and lets Print Express exchange that code for an **access token**. Print Express then uses the access token to call the Google Drive API.
+
+That concrete story maps directly onto the OAuth terms.
+
+## The OAuth roles on screen
+
+| Name on this page | What it means |
+| --- | --- |
+| **Resource Owner** | JayP, the user who owns the Google Drive files. |
+| **User-Agent** | JayP's browser, which follows redirects between Print Express and Google. |
+| **Client** | Print Express, the app requesting delegated access. |
+| **Authorization Server** | Google Accounts, which authenticates JayP, obtains consent, issues authorization codes, and issues tokens. |
+| **Resource Server** | Google Drive API, which hosts protected files and validates access tokens. |
+
+The most important rule: **the Client never gets the Resource Owner's password**.
+
+## Authorization Code + PKCE sequence
+
+1. Resource Owner clicks login/connect in the Client.
+2. Client generates `state`, `code_verifier`, and `code_challenge`.
+3. Client sends the User-Agent to the Authorization Server's `/authorize` endpoint.
+4. Authorization Server authenticates the Resource Owner.
+5. Authorization Server obtains consent for requested `scope`.
+6. Authorization Server redirects back to `redirect_uri` with `code` and `state`.
+7. Client validates `state`.
+8. Client sends `code` and `code_verifier` to the `/token` endpoint.
+9. Authorization Server validates the code, redirect URI, client identity, and PKCE verifier.
+10. Authorization Server returns an `access_token` and optionally `refresh_token` and `id_token`.
+11. Client calls the Resource Server with `Authorization: Bearer <access_token>`.
+12. Resource Server validates the token and returns protected data.
+
+An **access token** is a delegated credential. It does not say "the Client knows the user's password." It says "the Authorization Server issued this token for this audience, scope, subject, and expiry."
+
+The Authorization Server and Resource Server are separate roles. A company can run both roles in the same product boundary, but the jobs are different: one issues tokens; the other validates tokens and serves protected resources.
+
+## AI code review checks
+
+When AI generates OAuth code for the JayP / Print Express example, inspect the implementation against these visual invariants:
+
+| Check | What you should see in code |
+| --- | --- |
+| JayP logs in at Google | The Client redirects to `/authorize`; it does not collect Google credentials. |
+| Browser receives only a code | The callback handles `?code=...&state=...`, not `access_token` in the URL. |
+| Print Express checks the return | The callback validates `state` before any token exchange. |
+| PKCE closes the loop | The token request sends the original `code_verifier`. |
+| Tokens stay in the right place | The Drive API receives `Authorization: Bearer <access_token>`, never JayP's password. |
+| Scope is least privilege | The requested `scope` is Drive read access, not broad account access. |
+
+If those parts are wrong, the implementation is probably wrong.
+
+## Words you can ignore at first
+
+OAuth has many technical names: `authorization code`, `PKCE`, `state`, `redirect_uri`, `access_token`, `refresh_token`, `scope`, `audience`, and `token endpoint`.
+
+You do not need to memorize them on the first pass. First understand the handoff:
+
+**authorize -> receive code -> exchange code for token -> call Resource Server**.
+
+## Further reading
+
+- [OAuth 2.0 Explained In Simple Terms (With Visuals)](https://dev.to/jaypmedia/oauth-20-explained-in-simple-terms-with-visuals-30he) — the JayP / Print Express / Google Drive story used as inspiration here.
+- [RFC 6749](https://datatracker.ietf.org/doc/html/rfc6749) — OAuth 2.0 Authorization Framework
+- [RFC 7636](https://datatracker.ietf.org/doc/html/rfc7636) — PKCE
+- [OAuth 2.0 Security BCP](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-security-topics) — Current best practices

@@ -1,0 +1,70 @@
+---
+import Base from '../layouts/Base.astro';
+import { getCollection } from 'astro:content';
+
+const problems = await getCollection('problems', ({ data }) => !data.draft);
+const sorted = problems.sort((a, b) => a.data.title.localeCompare(b.data.title));
+
+const categories = ['protocol', 'os', 'distributed', 'security', 'networking'] as const;
+const categoryLabels: Record<string, string> = {
+  protocol: 'Protocol',
+  os: 'Operating System',
+  distributed: 'Distributed Systems',
+  security: 'Security',
+  networking: 'Networking',
+};
+
+const activeCategory = Astro.url.searchParams.get('category');
+const filtered = activeCategory
+  ? sorted.filter((p) => p.data.category === activeCategory)
+  : sorted;
+---
+
+<Base title="Browse" description="Browse all machine problems by category">
+  <div class="max-w-3xl mx-auto px-5 pt-10 pb-20">
+    <h1 class="text-2xl font-semibold tracking-tight mb-2">Browse</h1>
+    <p class="text-text-secondary mb-8">{filtered.length} problem{filtered.length !== 1 ? 's' : ''}</p>
+
+    <div class="flex flex-wrap gap-2 mb-8">
+      <a
+        href="/browse"
+        class:list={[
+          'px-3 py-1 text-xs rounded-md border transition-colors',
+          !activeCategory ? 'border-text bg-text text-bg' : 'border-border text-text-secondary hover:border-text-secondary',
+        ]}
+      >All</a>
+      {categories.map((cat) => {
+        const count = sorted.filter((p) => p.data.category === cat).length;
+        if (count === 0) return null;
+        return (
+          <a
+            href={`/browse?category=${cat}`}
+            class:list={[
+              'px-3 py-1 text-xs rounded-md border transition-colors',
+              activeCategory === cat ? 'border-text bg-text text-bg' : 'border-border text-text-secondary hover:border-text-secondary',
+            ]}
+          >{categoryLabels[cat]} ({count})</a>
+        );
+      })}
+    </div>
+
+    <div class="border-t border-border">
+      {filtered.map((p) => (
+        <a href={`/${p.slug}`} class="group block py-4 border-b border-border">
+          <div class="flex items-baseline justify-between gap-4">
+            <span class="text-[15px] group-hover:underline">{p.data.title}</span>
+            <span class="text-xs text-text-secondary shrink-0">{p.data.difficulty}</span>
+          </div>
+          <p class="text-sm text-text-secondary mt-1">{p.data.description}</p>
+          {p.data.tags.length > 0 && (
+            <div class="flex gap-2 mt-2">
+              {p.data.tags.map((tag) => (
+                <span class="text-[11px] text-text-secondary">{tag}</span>
+              ))}
+            </div>
+          )}
+        </a>
+      ))}
+    </div>
+  </div>
+</Base>

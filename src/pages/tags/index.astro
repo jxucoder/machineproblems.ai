@@ -1,0 +1,31 @@
+---
+import Base from '../../layouts/Base.astro';
+import { getCollection } from 'astro:content';
+
+const problems = await getCollection('problems', ({ data }) => !data.draft);
+const tagCounts = new Map<string, number>();
+
+for (const p of problems) {
+  for (const tag of p.data.tags) {
+    tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1);
+  }
+}
+
+const tags = [...tagCounts.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+---
+
+<Base title="Tags" description="Browse machine problems by tag">
+  <div class="max-w-3xl mx-auto px-5 pt-10 pb-20">
+    <h1 class="text-2xl font-semibold tracking-tight mb-8">Tags</h1>
+    <div class="flex flex-wrap gap-2">
+      {tags.map(([tag, count]) => (
+        <a
+          href={`/tags/${tag}`}
+          class="px-3 py-1.5 text-sm rounded-md border border-border hover:border-text-secondary transition-colors"
+        >
+          {tag} <span class="text-text-secondary text-xs">({count})</span>
+        </a>
+      ))}
+    </div>
+  </div>
+</Base>

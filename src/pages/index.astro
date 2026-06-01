@@ -1,0 +1,88 @@
+---
+import Base from '../layouts/Base.astro';
+import { SearchBox } from '../components/SearchBox';
+import { getCollection } from 'astro:content';
+
+const problems = await getCollection('problems', ({ data }) => !data.draft);
+const pageData = problems
+  .map((p) => ({
+    slug: p.slug,
+    title: p.data.title,
+    description: p.data.description,
+    tags: p.data.tags,
+    category: p.data.category,
+    difficulty: p.data.difficulty,
+    date: p.data.date,
+  }))
+  .sort((a, b) => {
+    if (!a.date && !b.date) return a.title.localeCompare(b.title);
+    if (!a.date) return 1;
+    if (!b.date) return -1;
+    return b.date.getTime() - a.date.getTime();
+  });
+
+const startHereSlugs = ['oauth'];
+
+const startHerePages = startHereSlugs
+  .map((slug) => pageData.find((p) => p.slug === slug))
+  .filter(Boolean);
+
+const categoryLabels: Record<string, string> = {
+  protocol: 'Protocol',
+  os: 'Operating System',
+  distributed: 'Distributed Systems',
+  security: 'Security',
+  networking: 'Networking',
+};
+---
+
+<Base title="Home">
+  <div class="max-w-3xl mx-auto px-5">
+    <section class="pt-24 pb-16">
+      <h1 class="text-3xl font-semibold tracking-tight mb-3">
+        <span class="font-bold">Machine</span> <span class="text-text-secondary">Problems</span>
+      </h1>
+      <p class="text-text-secondary leading-relaxed mb-8 max-w-lg">
+        Technical systems explained from zero, with interactive pictures first and jargon second.
+        Build enough understanding to trust, edit, or reject AI-generated code.
+      </p>
+      <div class="max-w-md">
+        <SearchBox client:load pages={pageData} />
+      </div>
+    </section>
+
+    {startHerePages.length > 0 && (
+      <section class="pb-14">
+        <p class="text-[11px] font-medium text-text-secondary uppercase tracking-widest mb-5">Start here</p>
+        <ol class="space-y-0 border-t border-border">
+          {startHerePages.map((page, index) => (
+            <li class="border-b border-border">
+              <a href={`/${page.slug}`} class="group flex items-baseline gap-4 py-3.5 transition-colors">
+                <span class="text-[13px] text-text-secondary tabular-nums w-4 shrink-0">{index + 1}</span>
+                <span class="text-[15px] group-hover:underline">{page.title}</span>
+              </a>
+            </li>
+          ))}
+        </ol>
+      </section>
+    )}
+
+    <section class="pb-24">
+      <p class="text-[11px] font-medium text-text-secondary uppercase tracking-widest mb-5">All problems</p>
+      <div class="border-t border-border">
+        {pageData.map((page) => (
+          <a
+            href={`/${page.slug}`}
+            class="group flex items-baseline justify-between gap-4 py-3 border-b border-border transition-colors"
+          >
+            <div class="min-w-0">
+              <span class="text-[15px] group-hover:underline">{page.title}</span>
+              <span class="block text-xs text-text-secondary mt-0.5 truncate">{page.description}</span>
+            </div>
+            <span class="text-xs text-text-secondary shrink-0">{categoryLabels[page.category]}</span>
+          </a>
+        ))}
+      </div>
+    </section>
+  </div>
+</Base>

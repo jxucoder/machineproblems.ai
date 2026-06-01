@@ -1,0 +1,37 @@
+---
+description: Enforce visual-first, example-first pedagogy for Machine Problems
+alwaysApply: true
+---
+
+# Visual And Example First
+
+Every topic must teach through a concrete example and a visualization before prose abstraction.
+
+## Required Page Shape
+
+1. Start with a named concrete scenario: person, app, service, data, failure, numbers.
+2. Put an interactive visual before the first long prose section.
+3. Map example objects to formal terms immediately after the visual.
+4. Reveal complexity in layers: example -> visual flow -> exact protocol/code -> edge cases.
+5. Keep prose as captions for visuals, not standalone explanation.
+
+## Visualization Requirements
+
+- The static first frame must explain the core idea without interaction.
+- Every animation must carry meaning: data moves, state changes, tokens transform, queues fill, memory pages swap.
+- Every step must show visible state, not just labels. Examples: current HTTP message, token contents, cache hit/miss, process state.
+- Use clickable steps, scrubbers, sliders, hover details, or scroll-linked reveal when they improve understanding.
+- Avoid sandbox-only widgets. The author must guide the learner through a worked example.
+
+## Content Requirements
+
+- No abstract term without an example in the same section.
+- No paragraph longer than 4 sentences unless it is a reference note.
+- Prefer diagrams, tables, timelines, state cards, and request/response panels over prose.
+- Include "AI code review checks": visual invariants the reader can use to evaluate generated code.
+
+## Bad / Good
+
+Bad: "OAuth uses authorization codes and access tokens."
+
+Good: "JayP clicks Connect Google Drive in Print Express. Google returns `code=abc123`; Print Express exchanges that code for `access_token=eyJ...`; only the access token goes to the Drive API."

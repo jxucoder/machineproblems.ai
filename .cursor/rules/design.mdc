@@ -1,0 +1,61 @@
+---
+description: Design system rules for Machine Problems UI and visualizations
+globs: ["src/**/*.{tsx,astro,css}"]
+alwaysApply: false
+---
+
+# Machine Problems Design System
+
+## Visual Style
+
+- Neutral grayscale palette via CSS custom properties in `global.css`
+- No purple gradients, no generic "AI slop" aesthetics
+- Use 1px borders for depth, not shadows
+- Generous whitespace; prose max-width ~680px, viz can be full-bleed
+- Single accent color (text/accent tokens) for CTAs only
+
+## Typography
+
+- Sans: Inter for UI and prose
+- Mono: JetBrains Mono for code, HTTP requests, parameters
+- Headings: font-semibold, tracking-tight, letter-spacing -0.02em
+
+## Semantic Actor Colors (sequence diagrams)
+
+Consistent across all protocol visualizations:
+
+| Actor | Token | Usage |
+|---|---|---|
+| User / Browser | `actor-user` (blue) | Browser redirects, user actions |
+| Client | `actor-client` (green) | Your application |
+| Auth Server | `actor-auth` (red) | Token issuance, login |
+| Resource Server | `actor-resource` (purple) | APIs, protected resources |
+
+## Visualization Principles
+
+1. **Concrete first** — start from a named worked example before abstract architecture.
+2. **Progressive disclosure** — example first, then formal terms, then exact messages/code.
+3. **Step-by-step playback** — Play/Pause, keyboard ←/→ and Space.
+4. **Live computation** — real crypto, real URL generation, actual state changes.
+5. **Visible state** — show the thing that changes: token, queue, packet, page table, lock, cache entry.
+6. **Semantic motion** — movement must encode causality or transformation, not decoration.
+7. **Request/response panels** — show exact HTTP, payloads, headers, or data formats when a step is active.
+
+## Component Patterns
+
+- Viz components live in `src/components/viz/`
+- Shared diagram primitives in `src/components/diagram/`
+- Use `cn()` from `@/lib/utils` for conditional classes
+- Use Framer Motion for step transitions (200-400ms)
+- Wrap viz in `not-prose` to escape typography plugin styles
+- Keep the first frame readable at rest; interactivity deepens, it does not rescue a confusing static diagram.
+- Prefer guided interactives over open sandboxes. The learner should know what to click and why.
+
+## Forbidden
+
+- Custom color palettes outside design tokens
+- Box shadows on cards (use border instead)
+- Inline styles except for dynamic diagram positioning
+- Hardcoded hex colors in viz components (use Tailwind actor-* tokens)
+- Prose-only concept sections
+- Animations that do not change learner understanding

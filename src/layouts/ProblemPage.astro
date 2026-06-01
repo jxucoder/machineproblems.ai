@@ -1,0 +1,77 @@
+---
+import Base from './Base.astro';
+import { getCollection } from 'astro:content';
+
+interface Props {
+  title: string;
+  description: string;
+  category: string;
+  difficulty: string;
+  tags: string[];
+  slug: string;
+}
+
+const { title, description, category, difficulty, tags, slug } = Astro.props;
+
+const allProblems = await getCollection('problems', ({ data }) => !data.draft);
+const related = allProblems
+  .filter((p) => p.slug !== slug)
+  .filter((p) => p.data.tags.some((t) => tags.includes(t)) || p.data.category === category)
+  .slice(0, 5);
+
+const categoryLabels: Record<string, string> = {
+  protocol: 'Protocol',
+  os: 'Operating System',
+  distributed: 'Distributed Systems',
+  security: 'Security',
+  networking: 'Networking',
+};
+---
+
+<Base title={title} description={description}>
+  <article class="max-w-3xl mx-auto px-5 pt-10 pb-20">
+    <header class="mb-10">
+      <a
+        href="/"
+        class="inline-block text-[13px] text-text-secondary hover:text-text transition-colors mb-6"
+      >&larr; Home</a>
+      <div class="flex items-center gap-2 mb-3 text-[11px] font-medium uppercase tracking-widest text-text-secondary">
+        <span>{categoryLabels[category] ?? category}</span>
+        <span class="text-border">·</span>
+        <span>{difficulty}</span>
+      </div>
+      <h1 class="text-2xl font-semibold tracking-tight leading-tight mb-3">{title}</h1>
+      <p class="text-text-secondary leading-relaxed">{description}</p>
+      {tags.length > 0 && (
+        <div class="flex flex-wrap gap-x-1 mt-4">
+          {tags.map((tag, i) => (
+            <span>
+              <a
+                href={`/tags/${tag}`}
+                class="text-[13px] text-text-secondary hover:text-text transition-colors"
+              >{tag}</a>{i < tags.length - 1 && <span class="text-border mx-1">/</span>}
+            </span>
+          ))}
+        </div>
+      )}
+    </header>
+
+    <div class="prose max-w-none">
+      <slot />
+    </div>
+
+    {related.length > 0 && (
+      <nav class="mt-16 pt-8 border-t border-border">
+        <p class="text-[11px] font-medium text-text-secondary uppercase tracking-widest mb-4">Related</p>
+        <div class="flex flex-col gap-2">
+          {related.map((p) => (
+            <a href={`/${p.slug}`} class="group flex items-baseline justify-between py-1">
+              <span class="text-sm group-hover:underline">{p.data.title}</span>
+              <span class="text-xs text-text-secondary ml-4 shrink-0">{p.data.category}</span>
+            </a>
+          ))}
+        </div>
+      </nav>
+    )}
+  </article>
+</Base>
