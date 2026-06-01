@@ -12,15 +12,17 @@ import { OAuthFlowViz } from '../../components/viz/OAuthFlowViz';
 
 <OAuthFlowViz client:load />
 
-## Concrete story first
+## How to read the picture
 
-Imagine JayP wants to print photos stored in Google Drive. The printing service, Print Express, needs to read JayP's Drive files. JayP should not give Print Express his Google password.
+JayP wants Print Express to read photos in Google Drive. The safety rule is visible in the diagram: JayP's password stops at Google, while Print Express only handles short-lived OAuth artifacts.
 
-OAuth solves that by making Print Express ask Google for delegated access. Google authenticates JayP, asks JayP for consent, sends Print Express an **authorization code**, and lets Print Express exchange that code for an **access token**. Print Express then uses the access token to call the Google Drive API.
+Follow three objects:
 
-That concrete story maps directly onto the OAuth terms.
+- `code_challenge` goes from Print Express to Google before login.
+- `authorization code` returns through the browser after consent.
+- `access_token` is created by Google and used only when Print Express calls Drive.
 
-## The OAuth roles on screen
+## The boxes on screen
 
 | Name on this page | What it means |
 | --- | --- |
@@ -30,22 +32,15 @@ That concrete story maps directly onto the OAuth terms.
 | **Authorization Server** | Google Accounts, which authenticates JayP, obtains consent, issues authorization codes, and issues tokens. |
 | **Resource Server** | Google Drive API, which hosts protected files and validates access tokens. |
 
-The most important rule: **the Client never gets the Resource Owner's password**.
+The most important visual invariant: **the Client never gets the Resource Owner's password**.
 
-## Authorization Code + PKCE sequence
+## Authorization Code + PKCE as a loop
 
-1. Resource Owner clicks login/connect in the Client.
-2. Client generates `state`, `code_verifier`, and `code_challenge`.
-3. Client sends the User-Agent to the Authorization Server's `/authorize` endpoint.
-4. Authorization Server authenticates the Resource Owner.
-5. Authorization Server obtains consent for requested `scope`.
-6. Authorization Server redirects back to `redirect_uri` with `code` and `state`.
-7. Client validates `state`.
-8. Client sends `code` and `code_verifier` to the `/token` endpoint.
-9. Authorization Server validates the code, redirect URI, client identity, and PKCE verifier.
-10. Authorization Server returns an `access_token` and optionally `refresh_token` and `id_token`.
-11. Client calls the Resource Server with `Authorization: Bearer <access_token>`.
-12. Resource Server validates the token and returns protected data.
+You can compress the whole sequence into one loop:
+
+`prepare PKCE -> redirect to Google -> receive code -> exchange code for token -> call Drive`
+
+The diagram expands that loop into clickable steps because the boundaries matter. Browser redirects are the front channel. Token exchange and API calls are back-channel server requests. `state` protects the browser return trip; PKCE proves that the same client that started the login is finishing it.
 
 An **access token** is a delegated credential. It does not say "the Client knows the user's password." It says "the Authorization Server issued this token for this audience, scope, subject, and expiry."
 
@@ -55,14 +50,14 @@ The Authorization Server and Resource Server are separate roles. A company can r
 
 When AI generates OAuth code for the JayP / Print Express example, inspect the implementation against these visual invariants:
 
-| Check | What you should see in code |
+| Visual check | What you should see in code |
 | --- | --- |
-| JayP logs in at Google | The Client redirects to `/authorize`; it does not collect Google credentials. |
-| Browser receives only a code | The callback handles `?code=...&state=...`, not `access_token` in the URL. |
-| Print Express checks the return | The callback validates `state` before any token exchange. |
+| Password stops at Google | The Client redirects to `/authorize`; it does not collect Google credentials. |
+| Browser returns only a code | The callback handles `?code=...&state=...`, not `access_token` in the URL. |
+| Return trip is checked | The callback validates `state` before any token exchange. |
 | PKCE closes the loop | The token request sends the original `code_verifier`. |
-| Tokens stay in the right place | The Drive API receives `Authorization: Bearer <access_token>`, never JayP's password. |
-| Scope is least privilege | The requested `scope` is Drive read access, not broad account access. |
+| Token goes to the API | The Drive API receives `Authorization: Bearer <access_token>`, never JayP's password. |
+| Scope is narrow | The requested `scope` is Drive read access, not broad account access. |
 
 If those parts are wrong, the implementation is probably wrong.
 

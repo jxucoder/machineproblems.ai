@@ -72,3 +72,28 @@ code {
   margin: 1.5em 0 !important;
   overflow-x: auto;
 }
+
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.prose th {
+  text-align: left;
+  font-weight: 600;
+  color: rgb(var(--color-text));
+  background: rgb(var(--color-bg-secondary) / 0.6);
+}
+
+.prose th,
+.prose td {
+  border: 1px solid rgb(var(--color-border));
+  padding: 0.65rem 0.75rem;
+  vertical-align: top;
+}
+
+.prose li::marker {
+  color: rgb(var(--color-text-secondary));
+}

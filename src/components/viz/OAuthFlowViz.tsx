@@ -10,8 +10,6 @@ import {
   type FlowStep,
 } from './oauthFlows';
 
-const ACTOR_ORDER: ActorId[] = ['user', 'client', 'auth', 'resource'];
-
 const actorPlainNames: Record<ActorId, string> = {
   user: 'Resource Owner',
   client: 'Client',
@@ -92,11 +90,11 @@ export function OAuthFlowViz() {
         <p className="text-[11px] uppercase tracking-widest text-text-secondary mb-2">Start here</p>
         <h2 className="text-lg font-semibold tracking-tight mb-2">Authorization Code + PKCE, step by step</h2>
         <p className="text-sm text-text-secondary leading-relaxed">
-          JayP wants Print Express to read files from Google Drive. OAuth separates the
-          person, the client app, the authorization server, and the resource server so
-          Print Express never receives JayP's Google password.
+          JayP wants Print Express to read Google Drive files. Read the picture by following
+          the moving credential: password stays at Google, code returns to Print Express,
+          token goes to the Drive API.
         </p>
-        <ActorLegend />
+        <VisualTakeaways />
       </div>
 
       {/* Main viz panel */}
@@ -118,10 +116,19 @@ export function OAuthFlowViz() {
 
         <div className="p-4 grid lg:grid-cols-[1fr_280px] gap-4">
           <div className="space-y-3">
+            <SystemBoxDiagram
+              steps={flow.steps}
+              activeStepIndex={stepIndex}
+              onStepSelect={(index) => {
+                setStepIndex(index);
+                setIsPlaying(false);
+              }}
+            />
+
             <AnimatePresence mode="wait">
               <motion.div
                 key={`${flowId}-${stepIndex}`}
-                initial={{ opacity: 0, y: 6 }}
+                initial={false}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -6 }}
                 transition={{ duration: 0.2 }}
@@ -133,15 +140,6 @@ export function OAuthFlowViz() {
                 <p className="text-[13px] text-text-secondary leading-relaxed mb-3">{step.description}</p>
               </motion.div>
             </AnimatePresence>
-
-            <SystemBoxDiagram
-              steps={flow.steps}
-              activeStepIndex={stepIndex}
-              onStepSelect={(index) => {
-                setStepIndex(index);
-                setIsPlaying(false);
-              }}
-            />
           </div>
 
           <div className="space-y-3">
@@ -247,25 +245,55 @@ export function OAuthFlowViz() {
   );
 }
 
-function ActorLegend() {
+function VisualTakeaways() {
+  const takeaways = [
+    {
+      label: 'Password',
+      title: 'Stops at Google',
+      colorClass: 'bg-actor-auth',
+    },
+    {
+      label: 'Code',
+      title: 'Passes through browser',
+      colorClass: 'bg-actor-client',
+    },
+    {
+      label: 'Token',
+      title: 'Unlocks the API',
+      colorClass: 'bg-actor-resource',
+    },
+  ];
+
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4">
-      {ACTOR_ORDER.map((id) => (
-        <div key={id} className="rounded-lg border border-border bg-bg px-3 py-2">
-          <div className={cn('w-2 h-2 rounded-full mb-2', ACTORS[id].colorClass)} />
-          <p className="text-sm font-medium">{actorPlainNames[id]}</p>
-          <p className="text-[11px] text-text-secondary leading-snug">{plainActorDescription[id]}</p>
+    <div className="grid sm:grid-cols-3 gap-2 mt-3">
+      {takeaways.map((item) => (
+        <div key={item.label} className="rounded-lg border border-border bg-bg px-3 py-2">
+          <div className="flex items-center gap-2">
+            <span className={cn('h-2 w-8 rounded-full', item.colorClass)} />
+            <span className="text-[10px] uppercase tracking-widest text-text-secondary">{item.label}</span>
+          </div>
+          <p className="text-sm font-medium mt-1">{item.title}</p>
         </div>
       ))}
     </div>
   );
 }
 
-const plainActorDescription: Record<ActorId, string> = {
-  user: 'JayP owns the Google Drive files; the browser follows redirects.',
-  client: 'Print Express requests delegated access.',
-  auth: 'Google Accounts authenticates JayP and issues tokens.',
-  resource: 'Google Drive API validates access tokens.',
+const visualCueByStep: Record<string, string> = {
+  initiate: 'The first arrow is just the user intent: JayP asks Print Express to connect Drive.',
+  'pkce-state': 'The green PKCE pill stays inside Print Express; it is not sent as the verifier yet.',
+  'authorization-request': 'The browser leaves Print Express and goes to Google with a code challenge, not a password.',
+  authenticate: 'The active path touches Google because JayP authenticates there, outside Print Express.',
+  consent: 'Consent happens at Google; the requested Drive scope is the thing JayP approves.',
+  'authorization-response': 'The yellow code appears on the return trip. It is temporary and not an API credential.',
+  'validate-state': 'Print Express checks that the returned state matches the state it created before redirecting.',
+  'token-request': 'The dashed path is server-to-server: Print Express exchanges code plus verifier at Google.',
+  'token-response': 'The green token is born at Google and returned to Print Express after validation.',
+  'resource-request': 'Only now does Print Express call Drive, carrying the Bearer token instead of a password.',
+  'resource-response': 'Drive validates the token before returning JayP’s files.',
+  refresh: 'Refresh is another server-to-server token exchange; the browser is not involved.',
+  'cc-token': 'No user box lights up because Client Credentials is machine-to-machine.',
+  'cc-api': 'The service uses its own token to call the API; no delegated user consent appears.',
 };
 
 function PlainStepCard({ step }: { step: FlowStep }) {
@@ -283,6 +311,7 @@ function PlainStepCard({ step }: { step: FlowStep }) {
         {' communicates with '}
         <span className="font-medium">{actorPlainNames[step.to]}</span>.
       </p>
+      <p className="text-sm leading-relaxed mt-2">{visualCueByStep[step.id] ?? 'Follow the active arrow and the highlighted boxes.'}</p>
       <p className="text-xs text-text-secondary mt-2">{channelCopy}</p>
     </div>
   );
@@ -431,7 +460,7 @@ function SystemBoxDiagram({
 
           {stepReached('pkce-state') && (
             <motion.g
-              initial={{ opacity: 0, scale: 0.8 }}
+              initial={false}
               animate={{ opacity: 1, scale: activeStep?.id === 'pkce-state' ? 1.08 : 1 }}
               transition={{ duration: 0.35 }}
             >
@@ -461,7 +490,7 @@ function SystemBoxDiagram({
           <AnimatePresence mode="wait">
             <motion.g
               key={activeStep?.id}
-              initial={{ opacity: 0, y: 10 }}
+              initial={false}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.22 }}
@@ -525,7 +554,7 @@ function ManimNode({
 }) {
   return (
     <motion.g
-      initial={{ opacity: 0, scale: 0.96 }}
+      initial={false}
       animate={{ opacity: active ? 1 : 0.62, scale: active ? 1.04 : 1 }}
       transition={{ duration: 0.25 }}
     >
@@ -569,7 +598,7 @@ function AnimatedArrow({
   if (!show) return null;
 
   return (
-    <motion.g initial={{ opacity: 0 }} animate={{ opacity: active ? 1 : 0.55 }} transition={{ duration: 0.2 }}>
+    <motion.g initial={false} animate={{ opacity: active ? 1 : 0.55 }} transition={{ duration: 0.2 }}>
       <motion.path
         key={`${label}-${active ? 'active' : 'seen'}`}
         d={path}
@@ -578,7 +607,7 @@ function AnimatedArrow({
         strokeWidth={active ? 3 : 1.8}
         strokeDasharray={dashed ? '8 8' : undefined}
         markerEnd="url(#manim-arrow)"
-        initial={{ pathLength: 0 }}
+        initial={false}
         animate={{
           pathLength: active ? [0, 1] : 1,
         }}
@@ -606,7 +635,7 @@ function AnimatedArrow({
         textAnchor="middle"
         fill={active ? '#f8fafc' : '#94a3b8'}
         fontSize="12"
-        initial={{ opacity: 0, y: 4 }}
+        initial={false}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2, duration: 0.25 }}
       >
